@@ -1,0 +1,32 @@
+# ==================== 核心框架 ====================
+langchain>=0.2.0              # Agent核心框架，提供Agent、Chain、Tool等基础组件
+langchain-core>=0.2.0         # LangChain核心抽象层，定义基础接口
+langgraph>=0.1.0              # 构建有状态的Agent工作流，支持复杂的多步骤规划
+
+# ==================== LLM集成（选一个即可）====================
+langchain-openai>=0.1.0       # OpenAI集成（GPT-4/GPT-3.5），需要API Key
+# langchain-anthropic>=0.1.0  # Claude集成（可选替代方案）
+
+# ==================== RAG相关 ====================
+chromadb>=0.5.0               # 向量数据库，存储和检索文档embedding，轻量本地化
+langchain-chroma>=0.1.0       # LangChain与Chroma的集成适配器
+
+# ==================== Embedding模型（选一个）====================
+# 方案A：使用OpenAI Embedding（需API，效果好但收费）
+# 已包含在langchain-openai中
+
+# 方案B：使用本地模型（免费，推荐新手用这个）
+sentence-transformers>=3.0.0  # 本地embedding模型，推荐bge-small-zh-v1.5（中文效果好）
+
+# ==================== 工具和实用库 ====================
+python-dotenv>=1.0.0          # 从.env文件加载环境变量（API Key等敏感信息）
+pydantic>=2.0.0               # 数据验证，定义Tool的输入输出结构
+httpx>=0.27.0                 # 异步HTTP客户端，用于调用外部API（获取动漫资讯等）
+#python建议3.11
+
+# ==================== 可选依赖 ====================
+# faiss-cpu>=1.8.0            # 另一个向量库选择，Meta出品，大规模数据性能更好
+# beautifulsoup4>=4.12.0      # 网页解析，如果需要爬取动漫网站信息
+# aiofiles>=23.0.0            # 异步文件操作
+
+

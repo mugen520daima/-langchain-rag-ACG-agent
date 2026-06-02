@@ -1,4 +1,4 @@
-# 🐱 巧克力猫娘 ACG 助手
+# 🐱 weller的猫娘 ACG 助手
 
 基于 LangChain 构建的 ACG（动画/漫画/游戏）领域智能助手，采用 RAG + Agent 架构。
 

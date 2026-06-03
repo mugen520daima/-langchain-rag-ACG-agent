@@ -3,9 +3,10 @@
 设计顺序：
 1. 先设计 State：明确当前这轮 Agent 运行到底需要保存什么状态。
 2. 再处理会话内上下文：把消息历史、工具调用结果、当前意图等组织好。
-3. 暂不考虑长期记忆：不落盘、不维护用户长期画像，避免过早复杂化。
+3. 聊天记录持久化到 TiDB 数据库，支持历史会话恢复。
 
-结论：这个文件当前只负责“单次会话 / 单个 session 内”的状态与上下文管理。
+结论：这个文件负责"单次会话 / 单个 session 内"的状态与上下文管理，
+同时通过 ChatMessageStore 将消息持久化到数据库。
 """
 
 from __future__ import annotations
@@ -13,12 +14,21 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+import pymysql
 from typing_extensions import override
 
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
-from config import DEFAULT_SESSION_ID, MAX_CONVERSATION_MESSAGES
+from config import (
+    DEFAULT_SESSION_ID,
+    MAX_CONVERSATION_MESSAGES,
+    TIDB_HOST,
+    TIDB_PORT,
+    TIDB_USER,
+    TIDB_PASSWORD,
+    TIDB_DATABASE,
+)
 
 
 # ==================== State 设计 ====================
@@ -35,6 +45,22 @@ from config import DEFAULT_SESSION_ID, MAX_CONVERSATION_MESSAGES
 #
 # 这些都属于“会话内状态”，生命周期跟 session 绑定。
 # 它们不是长期记忆，不需要落盘。
+
+
+# ==================== 核心类对比：ConversationMemory vs SessionState ====================
+# 
+# 1. ConversationMemory（消息历史 / 原始录音笔）：
+#    - 存储内容：原始的文本序列（HumanMessage, AIMessage）。
+#    - 主要受众：大模型 (LLM)。它会被拼接成 Prompt 发给模型。
+#    - 生命周期：随对话轮次累积，受滑动窗口限制（如最多保留20条）。
+#    - 设计目的：维持自然语言的连贯性（让 AI 知道前面聊了什么）。
+#
+# 2. SessionState（运行状态 / 结构化记事本）：
+#    - 存储内容：结构化的变量（意图、槽位、工具调用轨迹等）。
+#    - 主要受众：程序代码 (Python)。供业务逻辑判断和控制流使用。
+#    - 生命周期：每轮更新，临时数据在新一轮开始时主动清理。
+#    - 设计目的：维持任务状态的准确性（让系统知道流程走到哪了）。
+# ============================================================================
 
 
 @dataclass
@@ -374,3 +400,213 @@ class UserProfileMemory:
         这样上层代码仍可安全调用，而不会引入额外行为。
         """
         return ""
+
+
+# ==================== 数据库持久化层 ====================
+#
+# ChatMessageStore 负责将聊天记录持久化到 TiDB 数据库。
+# 它与内存中的 ConversationMemory 解耦，可以独立使用或配合使用。
+#
+# 设计原则：
+# - 写入时异步/同步均可，当前采用同步写入保证数据一致性
+# - 读取时支持分页，避免一次性加载过多历史
+# - 会话隔离通过 session_id 实现
+# ============================================================================
+
+
+class ChatMessageStore:
+    """聊天消息数据库存储层。
+
+    负责将聊天消息持久化到 TiDB 数据库，支持：
+    - 保存单条消息
+    - 按会话ID查询历史消息
+    - 创建/管理会话
+    """
+
+    def __init__(self):
+        """初始化数据库连接配置。
+
+        不在初始化时创建连接，而是每次操作时按需获取，
+        避免长连接超时问题。
+        """
+        self._config = {
+            "host": TIDB_HOST,
+            "port": TIDB_PORT,
+            "user": TIDB_USER,
+            "password": TIDB_PASSWORD,
+            "database": TIDB_DATABASE,
+            "ssl": {"ssl": {}},
+            "charset": "utf8mb4",
+        }
+
+    def _get_connection(self) -> pymysql.Connection:
+        """获取数据库连接。
+
+        每次操作创建新连接，操作完成后关闭。
+        这种模式适合低频操作，避免连接池管理的复杂性。
+
+        返回：
+        - pymysql 数据库连接对象。
+        """
+        return pymysql.connect(**self._config)
+
+    def save_message(self, session_id: str, role: str, content: str) -> int:
+        """保存一条聊天消息到数据库。
+
+        作用：
+        - 将用户或AI的消息持久化存储。
+        - 自动记录创建时间，便于后续按时间排序。
+
+        参数：
+        - session_id: 会话唯一标识，用于隔离不同对话。
+        - role: 消息角色，'human' 表示用户，'ai' 表示助手。
+        - content: 消息文本内容。
+
+        返回：
+        - 插入记录的自增ID。
+        """
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cursor:
+                sql = """
+                    INSERT INTO chat_messages (session_id, role, content)
+                    VALUES (%s, %s, %s)
+                """
+                cursor.execute(sql, (session_id, role, content))
+                conn.commit()
+                return cursor.lastrowid
+        finally:
+            conn.close()
+
+    def get_messages(
+        self, session_id: str, limit: int = 50, offset: int = 0
+    ) -> list[dict[str, Any]]:
+        """查询指定会话的历史消息。
+
+        作用：
+        - 从数据库加载历史对话记录。
+        - 支持分页，避免一次性加载过多数据。
+        - 按时间正序返回，便于还原对话流程。
+
+        参数：
+        - session_id: 要查询的会话ID。
+        - limit: 最多返回多少条消息，默认50条。
+        - offset: 跳过前多少条，用于分页。
+
+        返回：
+        - 消息字典列表，每条包含 id, role, content, created_at。
+        """
+        conn = self._get_connection()
+        try:
+            with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+                sql = """
+                    SELECT id, role, content, created_at
+                    FROM chat_messages
+                    WHERE session_id = %s
+                    ORDER BY created_at ASC
+                    LIMIT %s OFFSET %s
+                """
+                cursor.execute(sql, (session_id, limit, offset))
+                return cursor.fetchall()
+        finally:
+            conn.close()
+
+    def create_session(self, session_id: str, user_id: str | None = None, title: str | None = None) -> bool:
+        """创建新会话记录。
+
+        作用：
+        - 在开始新对话时，先在 chat_sessions 表中注册会话。
+        - 可选关联用户ID和会话标题，便于管理和展示。
+
+        参数：
+        - session_id: 会话唯一标识。
+        - user_id: 可选的用户ID，用于多用户场景。
+        - title: 可选的会话标题，可后续根据首条消息自动生成。
+
+        返回：
+        - True 表示创建成功，False 表示会话已存在（忽略）。
+        """
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cursor:
+                sql = """
+                    INSERT IGNORE INTO chat_sessions (session_id, user_id, title)
+                    VALUES (%s, %s, %s)
+                """
+                cursor.execute(sql, (session_id, user_id, title))
+                conn.commit()
+                return cursor.rowcount > 0
+        finally:
+            conn.close()
+
+    def get_session_list(self, user_id: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
+        """获取会话列表。
+
+        作用：
+        - 查询用户的历史会话，用于会话切换或历史记录展示。
+        - 按更新时间倒序，最近活跃的会话排在前面。
+
+        参数：
+        - user_id: 可选，筛选指定用户的会话。为 None 时返回所有会话。
+        - limit: 最多返回多少个会话。
+
+        返回：
+        - 会话字典列表，包含 session_id, title, created_at, updated_at。
+        """
+        conn = self._get_connection()
+        try:
+            with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+                if user_id:
+                    sql = """
+                        SELECT session_id, title, created_at, updated_at
+                        FROM chat_sessions
+                        WHERE user_id = %s
+                        ORDER BY updated_at DESC
+                        LIMIT %s
+                    """
+                    cursor.execute(sql, (user_id, limit))
+                else:
+                    sql = """
+                        SELECT session_id, title, created_at, updated_at
+                        FROM chat_sessions
+                        ORDER BY updated_at DESC
+                        LIMIT %s
+                    """
+                    cursor.execute(sql, (limit,))
+                return cursor.fetchall()
+        finally:
+            conn.close()
+
+    def delete_session(self, session_id: str) -> int:
+        """删除会话及其所有消息。
+
+        作用：
+        - 清理指定会话的所有数据。
+        - 先删消息再删会话，保证数据一致性。
+
+        参数：
+        - session_id: 要删除的会话ID。
+
+        返回：
+        - 删除的消息条数。
+        """
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cursor:
+                # 先删除消息
+                cursor.execute(
+                    "DELETE FROM chat_messages WHERE session_id = %s", (session_id,)
+                )
+                deleted_count = cursor.rowcount
+                # 再删除会话
+                cursor.execute(
+                    "DELETE FROM chat_sessions WHERE session_id = %s", (session_id,)
+                )
+                conn.commit()
+                return deleted_count
+        finally:
+            conn.close()
+
+
+# 全局单例，供其他模块直接导入使用
+chat_store = ChatMessageStore()

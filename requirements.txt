@@ -10,6 +10,8 @@ langchain-openai>=0.1.0       # OpenAI集成（GPT-4/GPT-3.5），需要API Key
 # ==================== RAG相关 ====================
 chromadb>=0.5.0               # 向量数据库，存储和检索文档embedding，轻量本地化
 langchain-chroma>=0.1.0       # LangChain与Chroma的集成适配器
+langchain-community>=0.2.0    # LangChain社区组件（Document Loaders、Embeddings等）
+langchain-text-splitters>=0.2.0 # LangChain文本切分组件
 
 # ==================== Embedding模型（选一个）====================
 # 方案A：使用OpenAI Embedding（需API，效果好但收费）

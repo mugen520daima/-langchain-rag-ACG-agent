@@ -1,13 +1,21 @@
 import os
 from dotenv import load_dotenv
+from pydantic import SecretStr
 
 load_dotenv()
 
-DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
+DASHSCOPE_API_KEY = SecretStr(os.getenv("DASHSCOPE_API_KEY", ""))
 CHAT_MODEL_NAME = os.getenv("CHAT_MODEL_NAME", "qwen3.7-plus")
 
 KNOWLEDGE_DIR = "data/knowledge"
 MEMORY_FILE = "data/memory/user_profile.json"
+
+# ==================== RAG 配置 ====================
+RAG_DEFAULT_K = 3  # 默认检索返回的文档数量
+
+# ==================== 向量数据库配置 ====================
+VECTORSTORE_PERSIST_DIR = "data/vectorstore"  # 向量数据库持久化目录
+EMBEDDING_MODEL_NAME = "BAAI/bge-small-zh-v1.5"  # Embedding 模型名称（中文优化）
 
 # ==================== Memory 配置 ====================
 MAX_CONVERSATION_MESSAGES = 20  # 会话历史最大保留消息数

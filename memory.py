@@ -11,10 +11,13 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
 import pymysql
+
+logger = logging.getLogger(__name__)
 from typing_extensions import override
 
 from langchain_core.chat_history import BaseChatMessageHistory
@@ -305,6 +308,7 @@ class SessionMemory:
         - user_input: 用户本轮输入。
         - intent: 本轮路由得到的意图标签。
         """
+        logger.debug(f"[SessionMemory] start_turn session={self.state.session_id} intent={intent} query={user_input[:50]!r}...")
         self.state.update_turn(query=user_input, intent=intent)
         self.state.clear_runtime_data()
         self.history.add_user_message(user_input)
@@ -319,6 +323,7 @@ class SessionMemory:
         参数：
         - assistant_output: 助手最终输出文本。
         """
+        logger.debug(f"[SessionMemory] finish_turn session={self.state.session_id} response_len={len(assistant_output)}")
         self.state.set_response(assistant_output)
         self.history.add_ai_message(assistant_output)
 
@@ -332,6 +337,7 @@ class SessionMemory:
         参数：
         - contexts: 检索得到的上下文列表。
         """
+        logger.debug(f"[SessionMemory] record_rag_contexts count={len(contexts)}")
         self.state.set_retrieved_contexts(contexts)
 
     def record_tool_call(self, tool_name: str, tool_input: Any, tool_output: Any) -> None:
@@ -346,6 +352,7 @@ class SessionMemory:
         - tool_input: 工具输入。
         - tool_output: 工具输出。
         """
+        logger.debug(f"[SessionMemory] record_tool_call tool={tool_name}")
         self.state.add_tool_trace(tool_name=tool_name, tool_input=tool_input, tool_output=tool_output)
 
     def set_current_topic(self, topic: str) -> None:
@@ -465,6 +472,7 @@ class ChatMessageStore:
         返回：
         - 插入记录的自增ID。
         """
+        logger.debug(f"[ChatMessageStore] save_message session={session_id} role={role}")
         conn = self._get_connection()
         try:
             with conn.cursor() as cursor:
@@ -474,7 +482,12 @@ class ChatMessageStore:
                 """
                 cursor.execute(sql, (session_id, role, content))
                 conn.commit()
-                return cursor.lastrowid
+                msg_id = cursor.lastrowid
+                logger.info(f"[ChatMessageStore] saved message id={msg_id} session={session_id} role={role}")
+                return msg_id
+        except Exception as e:
+            logger.error(f"[ChatMessageStore] save_message failed: {e}", exc_info=True)
+            raise
         finally:
             conn.close()
 
@@ -496,6 +509,7 @@ class ChatMessageStore:
         返回：
         - 消息字典列表，每条包含 id, role, content, created_at。
         """
+        logger.debug(f"[ChatMessageStore] get_messages session={session_id} limit={limit} offset={offset}")
         conn = self._get_connection()
         try:
             with conn.cursor(pymysql.cursors.DictCursor) as cursor:
@@ -507,7 +521,12 @@ class ChatMessageStore:
                     LIMIT %s OFFSET %s
                 """
                 cursor.execute(sql, (session_id, limit, offset))
-                return cursor.fetchall()
+                result = cursor.fetchall()
+                logger.debug(f"[ChatMessageStore] get_messages returned {len(result)} messages")
+                return result
+        except Exception as e:
+            logger.error(f"[ChatMessageStore] get_messages failed: {e}", exc_info=True)
+            raise
         finally:
             conn.close()
 
@@ -526,6 +545,7 @@ class ChatMessageStore:
         返回：
         - True 表示创建成功，False 表示会话已存在（忽略）。
         """
+        logger.debug(f"[ChatMessageStore] create_session session={session_id} user={user_id}")
         conn = self._get_connection()
         try:
             with conn.cursor() as cursor:
@@ -535,7 +555,15 @@ class ChatMessageStore:
                 """
                 cursor.execute(sql, (session_id, user_id, title))
                 conn.commit()
-                return cursor.rowcount > 0
+                created = cursor.rowcount > 0
+                if created:
+                    logger.info(f"[ChatMessageStore] created session={session_id}")
+                else:
+                    logger.debug(f"[ChatMessageStore] session={session_id} already exists")
+                return created
+        except Exception as e:
+            logger.error(f"[ChatMessageStore] create_session failed: {e}", exc_info=True)
+            raise
         finally:
             conn.close()
 
@@ -590,6 +618,7 @@ class ChatMessageStore:
         返回：
         - 删除的消息条数。
         """
+        logger.info(f"[ChatMessageStore] delete_session session={session_id}")
         conn = self._get_connection()
         try:
             with conn.cursor() as cursor:
@@ -603,7 +632,11 @@ class ChatMessageStore:
                     "DELETE FROM chat_sessions WHERE session_id = %s", (session_id,)
                 )
                 conn.commit()
+                logger.info(f"[ChatMessageStore] deleted session={session_id} messages={deleted_count}")
                 return deleted_count
+        except Exception as e:
+            logger.error(f"[ChatMessageStore] delete_session failed: {e}", exc_info=True)
+            raise
         finally:
             conn.close()
 

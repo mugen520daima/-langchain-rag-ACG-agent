@@ -1,6 +1,5 @@
 """加载知识库文档"""
 from pathlib import Path
-from langchain_community.document_loaders import TextLoader, DirectoryLoader
 from langchain_core.documents import Document
 
 

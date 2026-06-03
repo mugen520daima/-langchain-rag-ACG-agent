@@ -60,3 +60,57 @@ python app.py
 - LangChain + LangChain OpenAI
 - 阿里云 DashScope (通义千问)
 - RAG 向量检索
+- TiDB Cloud (MySQL 兼容)
+
+## 🗄️ 数据库设计
+
+使用 TiDB Cloud 存储聊天记录，支持会话隔离和历史查询。
+
+### 表结构
+
+#### chat_sessions - 会话管理表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键自增 |
+| session_id | VARCHAR(64) | 会话唯一标识 |
+| user_id | VARCHAR(64) | 用户ID（可选） |
+| title | VARCHAR(255) | 会话标题 |
+| created_at | TIMESTAMP | 创建时间 |
+| updated_at | TIMESTAMP | 更新时间 |
+
+#### chat_messages - 聊天消息表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键自增 |
+| session_id | VARCHAR(64) | 关联会话ID |
+| role | ENUM('human','ai') | 消息角色 |
+| content | TEXT | 消息内容 |
+| created_at | TIMESTAMP | 创建时间 |
+
+### 建表语句
+
+```sql
+-- 会话管理表
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(64) NOT NULL UNIQUE COMMENT '会话ID',
+    user_id VARCHAR(64) DEFAULT NULL COMMENT '用户ID(可选)',
+    title VARCHAR(255) DEFAULT NULL COMMENT '会话标题',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='会话管理表';
+
+-- 聊天消息表
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(64) NOT NULL COMMENT '会话ID',
+    role ENUM('human', 'ai') NOT NULL COMMENT '消息角色',
+    content TEXT NOT NULL COMMENT '消息内容',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    INDEX idx_session_id (session_id),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天消息记录表';
+```

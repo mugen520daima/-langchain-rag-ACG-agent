@@ -1,15 +1,17 @@
 # 🐱 weller的猫娘 ACG 助手
 
-基于 LangChain 构建的 ACG（动画/漫画/游戏）领域智能助手，采用 RAG + Agent 架构。
+基于 LangChain 构建的 ACG（动画/漫画/游戏）领域智能助手，采用 RAG + Rerank + Agent 架构，前端使用 Streamlit。
 
 ## ✨ 特性
 
 - **角色扮演**：傲娇猫娘"巧克力"人设，拒绝冷冰冰的 AI 语气
-- **RAG 知识检索**：内置 ACG 术语、正版渠道、周边商店等知识库
-- **多工具调用**：番剧查询、周边搜索、正版渠道推荐、网络搜索
-- **会话记忆**：支持多轮对话上下文管理
+- **两阶段 RAG 检索**：向量召回 + Cross-Encoder Rerank 精排，提升知识检索准确度
+- **意图路由**：LLM 自动判断走 RAG / 工具调用 / 闲聊三条路径
+- **多工具调用**：番剧查询、周边搜索、正版渠道推荐、网络搜索、时间查询
+- **会话记忆**：内存滑动窗口 + TiDB Cloud 持久化双层存储
+- **超时降级**：分级超时保护，服务不可用时自动降级
 
-## 🎭 角色设定 (Prompt)
+## 🎭 角色设定
 
 ```
 你是巧克力 (Chocolat)，一只傲娇猫娘，是用户的专属 ACG 助手。
@@ -28,6 +30,7 @@
 | `merch_search` | 搜索周边商品 |
 | `legal_site` | 推荐正版观看/购买渠道 |
 | `web_search` | 网络搜索获取最新信息 |
+| `time_tool` | 获取当前日期/时间 |
 
 ## 🚀 快速开始
 
@@ -40,35 +43,55 @@ cp .env.example .env
 # 编辑 .env 填入 API Key
 
 # 运行
-python app.py
+streamlit run app.py
 ```
 
 ## 📁 项目结构
 
 ```
-├── agent_service.py   # Agent 主逻辑
-├── memory.py          # 会话记忆管理
-├── prompts.py         # Prompt 模板
-├── workflow.py        # 意图路由
-├── rag/               # RAG 检索模块
-├── tools/             # 工具集
-└── data/              # 知识库数据
+├── app.py             # Streamlit 前端入口
+├── agent_service.py   # Agent 主控逻辑（意图路由 + RAG + 工具调用）
+├── memory.py          # 会话记忆（SessionState + ConversationMemory + TiDB 持久化）
+├── prompts.py         # Prompt 模板（角色/RAG/路由）
+├── workflow.py        # 意图路由（rag / tool / chat）
+├── config.py          # 全局配置
+├── rag/
+│   ├── rag_service.py     # RAG 检索流程协调
+│   ├── reranker.py        # Cross-Encoder Rerank 重排序
+│   ├── vector_store.py    # Chroma 向量库管理
+│   ├── document_loader.py # 知识库文档加载
+│   ├── splitter.py        # 文本分块
+│   └── retriever.py       # 向量检索器
+├── tools/             # 工具集（5 个 LangChain Tool）
+└── data/knowledge/    # 知识库 Markdown 文件
 ```
 
 ## 🔧 技术栈
 
-- LangChain + LangChain OpenAI
-- 阿里云 DashScope (通义千问)
-- RAG 向量检索
-- TiDB Cloud (MySQL 兼容)
+- **框架**：LangChain + Streamlit
+- **LLM**：阿里云 DashScope（Qwen 系列）
+- **向量模型**：`BAAI/bge-small-zh-v1.5`（Embedding）
+- **重排序模型**：`BAAI/bge-reranker-base`（Cross-Encoder Rerank）
+- **向量数据库**：Chroma（本地）
+- **持久化存储**：TiDB Cloud（MySQL 兼容）
+
+## ⚙️ RAG 检索流程
+
+```
+用户输入
+  → 意图路由（LLM 判断：rag / tool / chat）
+  → 向量召回（Top K×3 候选）
+  → Cross-Encoder Rerank 精排
+  → 阈值过滤（score > 0.6）
+  → 注入上下文 + 调用 Agent
+  → 返回回复 + 溯源引用
+```
 
 ## 🗄️ 数据库设计
 
 使用 TiDB Cloud 存储聊天记录，支持会话隔离和历史查询。
 
-### 表结构
-
-#### chat_sessions - 会话管理表
+### chat_sessions - 会话管理表
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -79,7 +102,7 @@ python app.py
 | created_at | TIMESTAMP | 创建时间 |
 | updated_at | TIMESTAMP | 更新时间 |
 
-#### chat_messages - 聊天消息表
+### chat_messages - 聊天消息表
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -92,7 +115,6 @@ python app.py
 ### 建表语句
 
 ```sql
--- 会话管理表
 CREATE TABLE IF NOT EXISTS chat_sessions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     session_id VARCHAR(64) NOT NULL UNIQUE COMMENT '会话ID',
@@ -103,7 +125,6 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
     INDEX idx_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='会话管理表';
 
--- 聊天消息表
 CREATE TABLE IF NOT EXISTS chat_messages (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     session_id VARCHAR(64) NOT NULL COMMENT '会话ID',

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 import pymysql
@@ -207,10 +208,14 @@ class ConversationMemory(BaseChatMessageHistory):
         作用：
         - 接收任意 LangChain 消息对象并加入历史。
         - 如果消息数超过上限，只保留最近的 `max_messages` 条。
+        - 自动添加时间戳到消息的 additional_kwargs 中。
 
         参数：
         - message: 一条 LangChain 消息对象，例如 `HumanMessage` 或 `AIMessage`。
         """
+        # 添加时间戳
+        if "timestamp" not in message.additional_kwargs:
+            message.additional_kwargs["timestamp"] = datetime.now().isoformat()
         self.messages.append(message)
         if len(self.messages) > self.max_messages:
             self.messages = self.messages[-self.max_messages :]
@@ -262,18 +267,21 @@ class ConversationMemory(BaseChatMessageHistory):
         作用：
         - 将最近的对话历史格式化成简单字符串，便于日志查看、调试或拼接附加上下文。
         - 这不是 LangChain 必需接口，而是一个辅助方法。
+        - 包含每条消息的时间戳。
 
         参数：
         - limit: 最多取最近多少条消息。
 
         返回：
-        - 形如“用户: ...\n助手: ...”的文本块。
+        - 形如"[时间] 用户: ...\n[时间] 助手: ..."的文本块。
         """
         recent_messages = self.messages[-limit:]
         lines: list[str] = []
         for msg in recent_messages:
             role = "用户" if isinstance(msg, HumanMessage) else "助手"
-            lines.append(f"{role}: {msg.content}")
+            timestamp = msg.additional_kwargs.get("timestamp", "")
+            time_str = f"[{timestamp}] " if timestamp else ""
+            lines.append(f"{time_str}{role}: {msg.content}")
         return "\n".join(lines)
 
 

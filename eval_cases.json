@@ -1,0 +1,492 @@
+[
+  {
+    "id": "rag_terms_001",
+    "input": "什么是番剧？",
+    "expected_intent": "rag",
+    "must_include": ["日本", "动画"],
+    "description": "测试基础术语-番剧定义"
+  },
+  {
+    "id": "rag_terms_002",
+    "input": "新番是什么意思？",
+    "expected_intent": "rag",
+    "must_include": ["当季", "新"],
+    "description": "测试基础术语-新番"
+  },
+  {
+    "id": "rag_terms_003",
+    "input": "追番和补番有什么区别？",
+    "expected_intent": "rag",
+    "must_include": ["追番", "补番"],
+    "description": "测试观看相关术语"
+  },
+  {
+    "id": "rag_terms_004",
+    "input": "什么是季番？半年番呢？",
+    "expected_intent": "rag",
+    "must_include": ["12", "24"],
+    "description": "测试番剧时长术语"
+  },
+  {
+    "id": "rag_terms_005",
+    "input": "神作和良作是什么意思？",
+    "expected_intent": "rag",
+    "must_include": ["神作", "良作"],
+    "description": "测试评价术语"
+  },
+  {
+    "id": "rag_terms_006",
+    "input": "什么是热血番？治愈番呢？",
+    "expected_intent": "rag",
+    "must_include": ["热血", "治愈"],
+    "description": "测试番剧分类-题材"
+  },
+  {
+    "id": "rag_terms_007",
+    "input": "少年向和少女向有什么区别？",
+    "expected_intent": "rag",
+    "must_include": ["少年", "少女", "男", "女"],
+    "description": "测试番剧分类-受众"
+  },
+  {
+    "id": "rag_terms_008",
+    "input": "OP和ED是什么？",
+    "expected_intent": "rag",
+    "must_include": ["片头", "片尾"],
+    "description": "测试动画制作术语"
+  },
+  {
+    "id": "rag_terms_009",
+    "input": "监督和脚本是什么意思？",
+    "expected_intent": "rag",
+    "must_include": ["导演", "编剧"],
+    "description": "测试动画制作术语"
+  },
+  {
+    "id": "rag_terms_010",
+    "input": "声优是什么？",
+    "expected_intent": "rag",
+    "must_include": ["配音"],
+    "description": "测试动画制作术语-声优"
+  },
+  {
+    "id": "rag_anime_001",
+    "input": "葬送的芙莉莲是什么类型的番？有多少集？",
+    "expected_intent": "rag",
+    "must_include": ["芙莉莲", "28", "奇幻"],
+    "description": "测试番剧资料-葬送的芙莉莲"
+  },
+  {
+    "id": "rag_anime_002",
+    "input": "鬼灭之刃是哪个公司做的？",
+    "expected_intent": "rag",
+    "must_include": ["ufotable"],
+    "description": "测试番剧资料-制作公司"
+  },
+  {
+    "id": "rag_anime_003",
+    "input": "进击的巨人完结了吗？一共多少集？",
+    "expected_intent": "rag",
+    "must_include": ["完结", "87"],
+    "description": "测试番剧资料-进击的巨人"
+  },
+  {
+    "id": "rag_anime_004",
+    "input": "咒术回战的评分是多少？",
+    "expected_intent": "rag",
+    "must_include": ["咒术回战", "8"],
+    "description": "测试番剧资料-评分"
+  },
+  {
+    "id": "rag_anime_005",
+    "input": "药屋少女的呢喃讲的是什么？",
+    "expected_intent": "rag",
+    "must_include": ["药", "猫猫"],
+    "description": "测试番剧资料-剧情简介"
+  },
+  {
+    "id": "rag_anime_006",
+    "input": "迷宫饭是什么题材？",
+    "expected_intent": "rag",
+    "must_include": ["美食", "奇幻"],
+    "description": "测试番剧资料-迷宫饭"
+  },
+  {
+    "id": "rag_anime_007",
+    "input": "间谍过家家是哪个制作公司做的？",
+    "expected_intent": "rag",
+    "must_include": ["WIT", "CloverWorks"],
+    "description": "测试番剧资料-制作公司"
+  },
+  {
+    "id": "rag_anime_008",
+    "input": "孤独摇滚有多少集？",
+    "expected_intent": "rag",
+    "must_include": ["12"],
+    "description": "测试番剧资料-集数"
+  },
+  {
+    "id": "rag_anime_009",
+    "input": "赛博朋克边缘行者是哪个公司制作的？",
+    "expected_intent": "rag",
+    "must_include": ["TRIGGER"],
+    "description": "测试番剧资料-制作公司"
+  },
+  {
+    "id": "rag_anime_010",
+    "input": "无职转生是异世界番吗？",
+    "expected_intent": "rag",
+    "must_include": ["异世界", "转生"],
+    "description": "测试番剧资料-类型判断"
+  },
+  {
+    "id": "rag_recommend_001",
+    "input": "有什么热血番推荐？",
+    "expected_intent": "rag",
+    "must_include": ["鬼灭", "咒术"],
+    "description": "测试推荐-热血番"
+  },
+  {
+    "id": "rag_recommend_002",
+    "input": "想看治愈番，有推荐吗？",
+    "expected_intent": "rag",
+    "must_include": ["芙莉莲", "治愈"],
+    "description": "测试推荐-治愈番"
+  },
+  {
+    "id": "rag_recommend_003",
+    "input": "有什么恋爱番推荐？",
+    "expected_intent": "rag",
+    "must_include": ["辉夜", "恋爱"],
+    "description": "测试推荐-恋爱番"
+  },
+  {
+    "id": "rag_recommend_004",
+    "input": "推荐几部悬疑番",
+    "expected_intent": "rag",
+    "must_include": ["死亡笔记"],
+    "description": "测试推荐-悬疑番"
+  },
+  {
+    "id": "rag_recommend_005",
+    "input": "有什么异世界番好看？",
+    "expected_intent": "rag",
+    "must_include": ["无职转生", "Re"],
+    "description": "测试推荐-异世界番"
+  },
+  {
+    "id": "rag_recommend_006",
+    "input": "想看机甲番，有推荐吗？",
+    "expected_intent": "rag",
+    "must_include": ["高达", "EVA"],
+    "description": "测试推荐-机甲番"
+  },
+  {
+    "id": "rag_recommend_007",
+    "input": "有什么短一点的番推荐？12集以内的",
+    "expected_intent": "rag",
+    "must_include": ["孤独摇滚", "12"],
+    "description": "测试推荐-短番"
+  },
+  {
+    "id": "rag_recommend_008",
+    "input": "动漫新人应该从哪部番入坑？",
+    "expected_intent": "rag",
+    "must_include": ["间谍过家家", "入坑"],
+    "description": "测试推荐-新人入坑"
+  },
+  {
+    "id": "rag_recommend_009",
+    "input": "有什么运动番推荐？",
+    "expected_intent": "rag",
+    "must_include": ["排球", "灌篮"],
+    "description": "测试推荐-运动番"
+  },
+  {
+    "id": "rag_recommend_010",
+    "input": "想看长篇番剧，有什么推荐？",
+    "expected_intent": "rag",
+    "must_include": ["海贼王", "100"],
+    "description": "测试推荐-长篇番"
+  },
+  {
+    "id": "rag_studio_001",
+    "input": "ufotable是什么公司？有什么代表作？",
+    "expected_intent": "rag",
+    "must_include": ["ufotable", "鬼灭", "飞碟"],
+    "description": "测试制作公司-ufotable"
+  },
+  {
+    "id": "rag_studio_002",
+    "input": "MAPPA有什么代表作？",
+    "expected_intent": "rag",
+    "must_include": ["MAPPA", "咒术", "进击"],
+    "description": "测试制作公司-MAPPA"
+  },
+  {
+    "id": "rag_studio_003",
+    "input": "京阿尼是什么？",
+    "expected_intent": "rag",
+    "must_include": ["京都动画", "紫罗兰"],
+    "description": "测试制作公司-京阿尼"
+  },
+  {
+    "id": "rag_studio_004",
+    "input": "骨头社有什么特点？",
+    "expected_intent": "rag",
+    "must_include": ["BONES", "英雄学院"],
+    "description": "测试制作公司-BONES"
+  },
+  {
+    "id": "rag_studio_005",
+    "input": "TRIGGER是什么公司？",
+    "expected_intent": "rag",
+    "must_include": ["TRIGGER", "赛博朋克"],
+    "description": "测试制作公司-TRIGGER"
+  },
+  {
+    "id": "rag_studio_006",
+    "input": "CloverWorks做过什么番？",
+    "expected_intent": "rag",
+    "must_include": ["孤独摇滚", "CloverWorks"],
+    "description": "测试制作公司-CloverWorks"
+  },
+  {
+    "id": "rag_studio_007",
+    "input": "WIT STUDIO有什么作品？",
+    "expected_intent": "rag",
+    "must_include": ["WIT", "进击的巨人"],
+    "description": "测试制作公司-WIT"
+  },
+  {
+    "id": "rag_studio_008",
+    "input": "MADHOUSE做过什么番？",
+    "expected_intent": "rag",
+    "must_include": ["MADHOUSE", "芙莉莲"],
+    "description": "测试制作公司-MADHOUSE"
+  },
+  {
+    "id": "rag_site_001",
+    "input": "B站番剧区的网址是什么？",
+    "expected_intent": "rag",
+    "must_include": ["bilibili.com", "anime"],
+    "description": "测试平台-B站链接"
+  },
+  {
+    "id": "rag_site_002",
+    "input": "在哪里可以看正版漫画？",
+    "expected_intent": "rag",
+    "must_include": ["哔哩哔哩漫画", "manga"],
+    "description": "测试平台-漫画平台"
+  },
+  {
+    "id": "rag_site_003",
+    "input": "爱奇艺的动漫频道在哪？",
+    "expected_intent": "rag",
+    "must_include": ["iqiyi", "dongman"],
+    "description": "测试平台-爱奇艺"
+  },
+  {
+    "id": "rag_site_004",
+    "input": "海外有什么正版动漫平台？",
+    "expected_intent": "rag",
+    "must_include": ["Crunchyroll", "Netflix"],
+    "description": "测试平台-海外平台"
+  },
+  {
+    "id": "rag_site_005",
+    "input": "有什么轻小说平台推荐？",
+    "expected_intent": "rag",
+    "must_include": ["轻文", "linovel"],
+    "description": "测试平台-轻小说"
+  },
+  {
+    "id": "rag_merch_001",
+    "input": "GSC是什么？在哪里买？",
+    "expected_intent": "rag",
+    "must_include": ["Good Smile", "黏土人", "tmall"],
+    "description": "测试周边-GSC"
+  },
+  {
+    "id": "rag_merch_002",
+    "input": "黏土人大概多少钱？",
+    "expected_intent": "rag",
+    "must_include": ["300", "500"],
+    "description": "测试周边-价格参考"
+  },
+  {
+    "id": "rag_merch_003",
+    "input": "高达模型有什么等级？",
+    "expected_intent": "rag",
+    "must_include": ["HG", "RG", "MG"],
+    "description": "测试周边-高达模型"
+  },
+  {
+    "id": "rag_merch_004",
+    "input": "在哪里可以买正版手办？",
+    "expected_intent": "rag",
+    "must_include": ["天猫", "旗舰店"],
+    "description": "测试周边-购买渠道"
+  },
+  {
+    "id": "rag_merch_005",
+    "input": "AmiAmi是什么？",
+    "expected_intent": "rag",
+    "must_include": ["AmiAmi", "日本", "周边"],
+    "description": "测试周边-AmiAmi"
+  },
+  {
+    "id": "rag_merch_006",
+    "input": "怎么辨别正版和盗版手办？",
+    "expected_intent": "rag",
+    "must_include": ["正版", "防伪", "包装"],
+    "description": "测试周边-正品辨别"
+  },
+  {
+    "id": "rag_merch_007",
+    "input": "海淘手办要注意什么？",
+    "expected_intent": "rag",
+    "must_include": ["关税", "物流"],
+    "description": "测试周边-海淘注意事项"
+  },
+  {
+    "id": "rag_link_001",
+    "input": "葬送的芙莉莲在B站的链接是什么？",
+    "expected_intent": "rag",
+    "must_include": ["bilibili.com/bangumi", "28238501"],
+    "description": "测试链接输出-芙莉莲"
+  },
+  {
+    "id": "rag_link_002",
+    "input": "鬼灭之刃的观看地址是什么？",
+    "expected_intent": "rag",
+    "must_include": ["bilibili.com/bangumi", "22718131"],
+    "description": "测试链接输出-鬼灭之刃"
+  },
+  {
+    "id": "rag_link_003",
+    "input": "孤独摇滚在哪里看？给我链接",
+    "expected_intent": "rag",
+    "must_include": ["bilibili.com/bangumi", "28235132"],
+    "description": "测试链接输出-孤独摇滚"
+  },
+  {
+    "id": "rag_anime_011",
+    "input": "帮我查一下孤独摇滚的番剧信息",
+    "expected_intent": "rag",
+    "must_include": ["孤独摇滚"],
+    "description": "测试RAG-带动词的番剧查询仍走知识库"
+  },
+  {
+    "id": "tool_002",
+    "input": "现在几点了？",
+    "expected_intent": "tool",
+    "must_include": ["时"],
+    "description": "测试工具调用-时间查询"
+  },
+  {
+    "id": "tool_003",
+    "input": "帮我搜索一下最近有什么新出的动漫周边",
+    "expected_intent": "tool",
+    "must_include": ["周边"],
+    "description": "测试工具调用-需要实时搜索的周边查询"
+  },
+  {
+    "id": "tool_004",
+    "input": "帮我在网上搜索最新的动漫资讯",
+    "expected_intent": "tool",
+    "must_include": ["搜索"],
+    "description": "测试工具调用-网络搜索"
+  },
+  {
+    "id": "tool_005",
+    "input": "今天是星期几？",
+    "expected_intent": "tool",
+    "must_include": ["星期"],
+    "description": "测试工具调用-日期查询"
+  },
+  {
+    "id": "rag_merch_008",
+    "input": "帮我查查手办的购买渠道",
+    "expected_intent": "rag",
+    "must_include": ["手办"],
+    "description": "测试RAG-周边购买渠道在知识库中"
+  },
+  {
+    "id": "chat_001",
+    "input": "巧克力，今天心情不好，陪我聊聊",
+    "expected_intent": "chat",
+    "must_include": ["喵"],
+    "description": "测试聊天-情感陪伴"
+  },
+  {
+    "id": "chat_002",
+    "input": "你好呀",
+    "expected_intent": "chat",
+    "must_include": ["喵"],
+    "description": "测试聊天-打招呼"
+  },
+  {
+    "id": "chat_003",
+    "input": "巧克力最喜欢吃什么？",
+    "expected_intent": "chat",
+    "must_include": ["喵"],
+    "description": "测试聊天-角色问答"
+  },
+  {
+    "id": "chat_004",
+    "input": "摸摸头",
+    "expected_intent": "chat",
+    "must_include": ["喵"],
+    "description": "测试聊天-互动"
+  },
+  {
+    "id": "chat_005",
+    "input": "巧克力，你是猫娘吗？",
+    "expected_intent": "chat",
+    "must_include": ["喵", "猫"],
+    "description": "测试聊天-身份问答"
+  },
+  {
+    "id": "chat_006",
+    "input": "晚安",
+    "expected_intent": "chat",
+    "must_include": ["喵"],
+    "description": "测试聊天-告别"
+  },
+  {
+    "id": "chat_007",
+    "input": "谢谢你的帮助",
+    "expected_intent": "chat",
+    "must_include": ["喵"],
+    "description": "测试聊天-感谢"
+  },
+  {
+    "id": "chat_008",
+    "input": "你的猫耳是真的吗？",
+    "expected_intent": "chat",
+    "must_include": ["喵", "耳"],
+    "description": "测试聊天-角色设定"
+  },
+  {
+    "id": "chat_unknown_001",
+    "input": "明天股票怎么走？",
+    "expected_intent": "chat",
+    "must_include": [],
+    "description": "测试拒答-超出ACG领域的问题"
+  },
+  {
+    "id": "chat_unknown_002",
+    "input": "帮我写一份工作周报",
+    "expected_intent": "chat",
+    "must_include": [],
+    "description": "测试拒答-非ACG领域任务"
+  },
+  {
+    "id": "chat_unknown_003",
+    "input": "鬼灭之刃外传之月球篇什么时候出？",
+    "expected_intent": "chat",
+    "must_include": [],
+    "description": "测试拒答-不存在的虚构番剧"
+  }
+]

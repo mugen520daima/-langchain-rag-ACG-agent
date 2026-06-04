@@ -18,7 +18,7 @@ langchain-text-splitters>=0.2.0 # LangChain文本切分组件
 # 已包含在langchain-openai中
 
 # 方案B：使用本地模型（免费，推荐新手用这个）
-sentence-transformers>=3.0.0  # 本地embedding模型，推荐bge-small-zh-v1.5（中文效果好）
+sentence-transformers>=3.0.0  # Embedding + CrossEncoder Rerank，推荐bge-small-zh-v1.5 + bge-reranker-base
 
 # ==================== 工具和实用库 ====================
 python-dotenv>=1.0.0          # 从.env文件加载环境变量（API Key等敏感信息）

@@ -1,6 +1,7 @@
 # Virtual environment
 venv/
 .venv/
+.venv311/
 
 # Python cache
 __pycache__/
@@ -18,3 +19,6 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# Vector store (local generated data)
+data/vectorstore/

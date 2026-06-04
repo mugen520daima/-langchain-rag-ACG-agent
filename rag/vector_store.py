@@ -22,11 +22,12 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 from config import VECTORSTORE_PERSIST_DIR, EMBEDDING_MODEL_NAME
 
-# 模块级单例，避免重复加载向量数据库
+# 模块级单例，避免重复加载
 _vectorstore = None
+_embeddings = None
 
 
-def get_embeddings() -> HuggingFaceEmbeddings:
+def get_embeddings() -> HuggingFaceEmbeddings | None:
     """
     获取 Embedding 模型实例
     
@@ -36,9 +37,18 @@ def get_embeddings() -> HuggingFaceEmbeddings:
         - 特点: 中文效果好，资源占用低，适合本地部署
     
     Returns:
-        HuggingFaceEmbeddings: 配置好的 Embedding 模型实例
+        HuggingFaceEmbeddings: 配置好的 Embedding 模型实例，加载失败返回 None
     """
-    return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
+    global _embeddings
+    if _embeddings is not None:
+        return _embeddings
+    try:
+        _embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
+        return _embeddings
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Embedding 模型加载失败: {e}")
+        return None
 
 
 def get_vectorstore() -> Chroma | None:
@@ -59,9 +69,12 @@ def get_vectorstore() -> Chroma | None:
     
     # 检查持久化目录是否存在，存在则加载
     if Path(VECTORSTORE_PERSIST_DIR).exists():
+        embeddings = get_embeddings()
+        if embeddings is None:
+            return None
         _vectorstore = Chroma(
             persist_directory=VECTORSTORE_PERSIST_DIR,
-            embedding_function=get_embeddings()
+            embedding_function=embeddings
         )
         return _vectorstore
     
@@ -86,9 +99,13 @@ def create_vectorstore(documents: list[Document]) -> Chroma:
     """
     global _vectorstore
     
+    embeddings = get_embeddings()
+    if embeddings is None:
+        raise RuntimeError("Embedding 模型加载失败，无法创建向量库")
+    
     _vectorstore = Chroma.from_documents(
         documents=documents,                    # 待索引的文档
-        embedding=get_embeddings(),             # Embedding 模型
+        embedding=embeddings,                   # Embedding 模型
         persist_directory=VECTORSTORE_PERSIST_DIR  # 持久化目录
     )
     return _vectorstore

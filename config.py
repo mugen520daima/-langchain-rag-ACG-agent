@@ -29,6 +29,11 @@ MAX_CONVERSATION_MESSAGES = 20  # 会话历史最大保留消息数
 DEFAULT_SESSION_ID = "default"  # 默认会话ID
 
 # ==================== TiDB 数据库配置 ====================  写你自己的
+TIDB_HOST = os.getenv("TIDB_HOST", "")
+TIDB_PORT = int(os.getenv("TIDB_PORT", "4000"))
+TIDB_USER = os.getenv("TIDB_USER", "")
+TIDB_PASSWORD = os.getenv("TIDB_PASSWORD", "")
+TIDB_DATABASE = os.getenv("TIDB_DATABASE", "")
 
 
 # ==================== 超时与降级配置 ====================

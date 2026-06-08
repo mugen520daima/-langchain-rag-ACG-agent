@@ -33,5 +33,5 @@ DEFAULT_SESSION_ID = "default"  # 默认会话ID
 
 # ==================== 超时与降级配置 ====================
 ROUTER_TIMEOUT = int(os.getenv("ROUTER_TIMEOUT", "10"))      # 意图路由超时（秒）
-RAG_TIMEOUT = int(os.getenv("RAG_TIMEOUT", "15"))            # RAG 检索超时（秒）
+RAG_TIMEOUT = int(os.getenv("RAG_TIMEOUT", "120"))           # RAG 检索超时（秒）- 首次加载模型需要下载，预留足够时间
 AGENT_TIMEOUT = int(os.getenv("AGENT_TIMEOUT", "120"))       # Agent 执行超时（秒）

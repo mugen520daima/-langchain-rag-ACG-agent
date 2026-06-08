@@ -18,12 +18,16 @@ langchain-text-splitters>=0.2.0 # LangChain文本切分组件
 # 已包含在langchain-openai中
 
 # 方案B：使用本地模型（免费，推荐新手用这个）
+torch>=2.0.0                   # PyTorch 深度学习框架
+torchvision>=0.15.0           # 视觉模型依赖（transformers 需要）
 sentence-transformers>=3.0.0  # Embedding + CrossEncoder Rerank，推荐bge-small-zh-v1.5 + bge-reranker-base
 
 # ==================== 工具和实用库 ====================
 python-dotenv>=1.0.0          # 从.env文件加载环境变量（API Key等敏感信息）
 pydantic>=2.0.0               # 数据验证，定义Tool的输入输出结构
 httpx>=0.27.0                 # 异步HTTP客户端，用于调用外部API（获取动漫资讯等）
+duckduckgo-search>=6.0.0      # DuckDuckGo 搜索引擎，用于 web_search_tool（依赖 ddgs）
+ddgs>=6.0.0                   # DuckDuckGo 搜索 Python 客户端
 #python建议3.11
 
 # ==================== 可选依赖 ====================

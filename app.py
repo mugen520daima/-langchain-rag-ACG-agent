@@ -6,6 +6,10 @@ os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 os.environ["TQDM_DISABLE"] = "1"
 
+# 运行：source venv/bin/activate && streamlit run app.py
+# 使用 HuggingFace 镜像站加速国内下载
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+
 # 用安全的 stderr 包装器替换 sys.stderr，避免 BrokenPipeError
 import sys
 class _SafeStderr:
@@ -174,6 +178,16 @@ header[data-testid="stHeader"] > div {
     margin: 10px 0 !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
     border: 1px solid rgba(255, 255, 255, 0.5);
+    color: #333 !important;
+}
+
+.stChatMessage p, .stChatMessage span, .stChatMessage div,
+.stChatMessage .stMarkdown, .stChatMessage .stMarkdown p,
+.stChatMessage [data-testid="stMarkdownContainer"],
+.stChatMessage [data-testid="stMarkdownContainer"] p {
+    color: #333 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 /* 消息气泡 - AI回复（粉色底） */
@@ -277,21 +291,24 @@ st.markdown("""
 if "agent" not in st.session_state:
     with st.spinner("正在初始化巧克力...首次加载模型可能需要一点时间喵~"):
         st.session_state.agent = AnimeAgent()
+        if st.session_state.agent.rag_service:
+            st.session_state.agent.rag_service.retrieve("测试查询")
+        st.success("模型加载完成！")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 for msg in st.session_state.messages:
     avatar = AI_AVATAR if msg["role"] == "assistant" else USER_AVATAR
     with st.chat_message(msg["role"], avatar=avatar):
-        st.write(msg["content"])
+        st.markdown(msg["content"])
 
 if prompt := st.chat_input("和巧克力聊聊吧~ 喵"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=USER_AVATAR):
-        st.write(prompt)
-    
+        st.markdown(prompt)
+
     with st.chat_message("assistant", avatar=AI_AVATAR):
         with st.spinner("巧克力正在思考中...喵~"):
             response = st.session_state.agent.chat(prompt)
-        st.write(response["output"])
+        st.markdown(response["output"])
     st.session_state.messages.append({"role": "assistant", "content": response["output"]})

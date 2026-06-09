@@ -288,7 +288,7 @@ st.markdown("""
 <div class="author-info">作者：Weller</div>
 """, unsafe_allow_html=True)
 
-if "agent" not in st.session_state:
+if "agent" not in st.session_state or not hasattr(st.session_state.agent, "chat_stream"):
     with st.spinner("正在初始化巧克力...首次加载模型可能需要一点时间喵~"):
         st.session_state.agent = AnimeAgent()
         if st.session_state.agent.rag_service:
@@ -308,7 +308,10 @@ if prompt := st.chat_input("和巧克力聊聊吧~ 喵"):
         st.markdown(prompt)
 
     with st.chat_message("assistant", avatar=AI_AVATAR):
-        with st.spinner("巧克力正在思考中...喵~"):
-            response = st.session_state.agent.chat(prompt)
-        st.markdown(response["output"])
-    st.session_state.messages.append({"role": "assistant", "content": response["output"]})
+        placeholder = st.empty()
+        full_response = ""
+        for chunk in st.session_state.agent.chat_stream(prompt):
+            full_response += chunk
+            placeholder.markdown(full_response + "▌")
+        placeholder.markdown(full_response)
+    st.session_state.messages.append({"role": "assistant", "content": full_response})

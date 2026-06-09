@@ -380,17 +380,24 @@ class AnimeAgent:
             astream_events(version="v2") 会产出多种事件：
             - on_chain_start/end: Chain 级别的开始/结束
             - on_tool_start/end: 工具调用的开始/结束
-            - on_chat_model_stream: LLM 输出的每个 token（我们只关心这个）
+            - on_chat_model_stream: LLM 输出的每个 token
+
+            Agent 可能多次调用 LLM（中间推理 + 最终回复），我们需要收集所有
+            非工具调用的文本输出。工具调用阶段 chunk 的 content 为空，
+            tool_calls 不为空，因此通过判断 content 是否为有效文本来过滤。
             """
             nonlocal full_output
             async for event in self.agent_executor.astream_events(
                 {"input": agent_input, "chat_history": self.memory.history.messages},
                 version="v2"
             ):
-                # 只提取 LLM 流式输出的 token 事件
                 if event["event"] == "on_chat_model_stream":
                     chunk = event["data"]["chunk"]
+                    # 过滤掉工具调用的 chunk（tool_calls 不为空时 content 通常为空）
                     if hasattr(chunk, "content") and chunk.content:
+                        # 跳过纯工具调用 JSON 片段
+                        if hasattr(chunk, "tool_call_chunks") and chunk.tool_call_chunks:
+                            continue
                         full_output += chunk.content
                         yield chunk.content
 

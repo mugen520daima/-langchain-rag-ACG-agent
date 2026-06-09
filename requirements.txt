@@ -37,3 +37,4 @@ ddgs>=6.0.0                   # DuckDuckGo 搜索 Python 客户端
 
 
 pymysql
+bcrypt

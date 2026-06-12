@@ -40,3 +40,9 @@ TIDB_DATABASE = os.getenv("TIDB_DATABASE", "test")
 ROUTER_TIMEOUT = int(os.getenv("ROUTER_TIMEOUT", "10"))      # 意图路由超时（秒）
 RAG_TIMEOUT = int(os.getenv("RAG_TIMEOUT", "120"))           # RAG 检索超时（秒）- 首次加载模型需要下载，预留足够时间
 AGENT_TIMEOUT = int(os.getenv("AGENT_TIMEOUT", "120"))       # Agent 执行超时（秒）
+
+# ==================== 登录态 JWT 配置 ====================
+# 生产环境务必通过环境变量 JWT_SECRET 覆盖此默认值，不要使用代码里的默认密钥
+JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-prod-acg-agent-secret")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "168"))  # 登录态有效期（小时），默认 7 天

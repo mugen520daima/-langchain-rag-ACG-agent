@@ -33,10 +33,12 @@ if sys.stderr is not None:
 
 import uuid
 import streamlit as st
+import extra_streamlit_components as stx
 from pathlib import Path
 from agent_service import AnimeAgent
 from auth import authenticate, register, create_users_table, check_db_connection
 from memory import chat_store
+from token_store import create_token, verify_token
 
 # 启动命令：source venv/bin/activate && streamlit run app.py
 # http://localhost:8557/
@@ -295,11 +297,128 @@ header[data-testid="stHeader"] [data-testid="stToolbar"] {
 """, unsafe_allow_html=True)
 
 
+# ==================== 登录态：JWT + Cookie 持久化 ====================
+# Cookie 管理器（基于浏览器 cookie，刷新页面后仍保留）
+COOKIE_NAME = "acg_token"
+
+# CookieManager 内部会调用 widget 命令，不能放进 @st.cache_resource，
+# 否则触发 CachedWidgetWarning。直接实例化，用固定 key 保证单实例。
+cookie_manager = stx.CookieManager(key="cookie_manager")
+
+
+def _save_login(username: str):
+    """登录成功后：写 session_state + 签发 JWT 存入 cookie。"""
+    token = create_token(username)
+    st.session_state["username"] = username
+    cookie_manager.set(COOKIE_NAME, token, key="set_token")
+
+
+def _clear_login():
+    """登出：清空 session_state 并删除 cookie。"""
+    st.session_state["username"] = None
+    try:
+        cookie_manager.delete(COOKIE_NAME, key="del_token")
+    except KeyError:
+        pass  # cookie 不存在时忽略
+
+
 # ==================== 登录/注册页面 ====================
 if "username" not in st.session_state:
     st.session_state["username"] = None
 
+# 刷新页面后，尝试从 cookie 里的 JWT 恢复登录态
 if not st.session_state["username"]:
+    _token = cookie_manager.get(COOKIE_NAME)
+    _restored_user = verify_token(_token) if _token else None
+    if _restored_user:
+        st.session_state["username"] = _restored_user
+
+if not st.session_state["username"]:
+    # ---------- 登录页专属样式：居中毛玻璃卡片 ----------
+    st.markdown("""
+    <style>
+    /* 登录页内容整体下移，给标题腾位置 */
+    .block-container { padding-top: 180px !important; max-width: 480px !important; }
+
+    /* 把 tabs + 表单收进一张居中的毛玻璃卡片 */
+    [data-testid="stForm"] {
+        background: rgba(255, 255, 255, 0.55) !important;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.6) !important;
+        border-radius: 20px !important;
+        padding: 28px 26px !important;
+        box-shadow: 0 8px 32px rgba(120, 80, 120, 0.18) !important;
+    }
+
+    /* 标签页：居中、胶囊高亮 */
+    [data-testid="stTabs"] [role="tablist"] {
+        justify-content: center;
+        gap: 8px;
+        border-bottom: none !important;
+        margin-bottom: 6px;
+    }
+    [data-testid="stTabs"] [role="tab"] {
+        background: rgba(255, 255, 255, 0.45);
+        border-radius: 12px !important;
+        padding: 6px 20px !important;
+        color: #8a5a7a !important;
+        font-weight: 600;
+    }
+    [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+        background: linear-gradient(135deg, #ff9a9e, #ff6b9d) !important;
+        color: #fff !important;
+        box-shadow: 0 2px 10px rgba(255, 107, 157, 0.4);
+    }
+    [data-testid="stTabs"] [data-baseweb="tab-highlight"] { display: none !important; }
+
+    /* 标签文字（用户名 / 密码） */
+    [data-testid="stForm"] label p {
+        color: #6b4a5e !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* 输入框：圆角 + 半透明白底 */
+    [data-testid="stForm"] [data-baseweb="input"],
+    [data-testid="stForm"] [data-baseweb="base-input"] {
+        background: rgba(255, 255, 255, 0.92) !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 182, 193, 0.5) !important;
+    }
+    [data-testid="stForm"] input {
+        background: transparent !important;
+        color: #333 !important;
+        padding: 6px 4px !important;
+    }
+    [data-testid="stForm"] [data-baseweb="input"]:focus-within {
+        border-color: #ff6b9d !important;
+        box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.15) !important;
+    }
+
+    /* 提交按钮：粉色渐变 */
+    [data-testid="stForm"] button[kind="primaryFormSubmit"],
+    [data-testid="stForm"] button[kind="secondaryFormSubmit"],
+    [data-testid="stForm"] .stButton button,
+    [data-testid="stForm"] [data-testid="stFormSubmitButton"] button {
+        background: linear-gradient(135deg, #ff9a9e, #ff6b9d) !important;
+        color: #fff !important;
+        border: none !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        letter-spacing: 2px;
+        padding: 10px 0 !important;
+        margin-top: 8px;
+        box-shadow: 0 4px 14px rgba(255, 107, 157, 0.35) !important;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+    [data-testid="stForm"] [data-testid="stFormSubmitButton"] button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(255, 107, 157, 0.5) !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("""
     <div class="fixed-header">
         <div class="main-title">🎀 巧克力の小窝 🎀</div>
@@ -318,7 +437,7 @@ if not st.session_state["username"]:
             if submitted:
                 ok, msg = authenticate(login_user, login_pass)
                 if ok:
-                    st.session_state["username"] = login_user
+                    _save_login(login_user)
                     st.rerun()
                 else:
                     st.error(msg)
@@ -368,8 +487,10 @@ def _switch_session(session_id: str):
     st.session_state["current_session_id"] = session_id
     # 从 DB 加载历史消息
     db_messages = chat_store.get_messages(session_id, limit=100)
+    # DB 中角色存为 human/ai，渲染层用 user/assistant，这里统一映射
+    _role_map = {"human": "user", "ai": "assistant"}
     st.session_state["messages"] = [
-        {"role": msg["role"].replace("human", "user"), "content": msg["content"]}
+        {"role": _role_map.get(msg["role"], msg["role"]), "content": msg["content"]}
         for msg in db_messages
     ]
     # 重新初始化 Agent 使用对应 session_id
@@ -380,7 +501,7 @@ def _switch_session(session_id: str):
 with st.sidebar:
     st.markdown(f"### 👤 {username}")
     if st.button("🚪 登出", use_container_width=True):
-        st.session_state["username"] = None
+        _clear_login()
         st.session_state["current_session_id"] = None
         st.session_state["messages"] = []
         if "agent" in st.session_state:

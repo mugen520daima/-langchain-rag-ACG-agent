@@ -30,15 +30,21 @@ def _get_connection() -> pymysql.Connection:
 
 
 def check_db_connection() -> tuple[bool, str]:
-    """测试数据库连通性，返回 (是否成功, 消息)。"""
+    """测试数据库连通性，返回 (是否成功, 消息)。
+
+    失败时只向调用方返回通用提示，原始异常写入日志，避免泄露到前端。
+    """
     try:
         conn = _get_connection()
         conn.close()
         return True, "数据库连接正常"
     except ConnectionError as e:
-        return False, str(e)
+        # 配置缺失类错误，提示信息本身不含敏感细节，可直接返回
+        logger.warning(f"数据库未配置: {e}")
+        return False, "数据库未配置，请联系管理员"
     except Exception as e:
-        return False, f"数据库连接失败: {e}"
+        logger.error(f"数据库连接失败: {e}")
+        return False, "数据库连接失败，请稍后重试"
 
 
 def create_users_table():
@@ -82,7 +88,8 @@ def register(username: str, password: str, nickname: str | None = None) -> tuple
     try:
         conn = _get_connection()
     except (ConnectionError, Exception) as e:
-        return False, f"数据库连接失败: {e}"
+        logger.error(f"注册时数据库连接失败: {e}")
+        return False, "服务暂时不可用，请稍后重试"
     try:
         with conn.cursor() as cursor:
             cursor.execute(
@@ -113,7 +120,8 @@ def authenticate(username: str, password: str) -> tuple[bool, str]:
     try:
         conn = _get_connection()
     except (ConnectionError, Exception) as e:
-        return False, f"数据库连接失败: {e}"
+        logger.error(f"登录时数据库连接失败: {e}")
+        return False, "服务暂时不可用，请稍后重试"
     try:
         with conn.cursor() as cursor:
             cursor.execute("SELECT password_hash FROM users WHERE username = %s", (username,))

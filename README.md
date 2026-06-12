@@ -75,6 +75,120 @@ streamlit run app.py
 - **向量数据库**：Chroma（本地）
 - **持久化存储**：TiDB Cloud（MySQL 兼容）
 
+## 🌐 REST API 接口（供 Java 后端调用）
+
+项目提供 FastAPI HTTP 接口，便于 Java 等后端服务集成。
+
+### 启动 API 服务
+
+```bash
+pip install fastapi uvicorn
+uvicorn api_server:app --host 0.0.0.0 --port 8600 --reload
+```
+
+启动后访问 `http://localhost:8600/docs` 查看 Swagger 文档。
+
+### 接口列表
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/auth/login` | 用户登录 |
+| POST | `/api/auth/register` | 用户注册 |
+| POST | `/api/session/create` | 创建新会话 |
+| GET | `/api/session/list?user_id=xxx` | 获取用户会话列表 |
+| DELETE | `/api/session/{session_id}` | 删除会话 |
+| GET | `/api/session/{session_id}/messages` | 获取会话历史消息 |
+| POST | `/api/chat` | 同步对话（完整回复） |
+| POST | `/api/chat/stream` | 流式对话（SSE） |
+| GET | `/api/health` | 健康检查 |
+
+### 请求/响应示例
+
+#### 登录
+
+```bash
+curl -X POST http://localhost:8600/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "weller", "password": "123456"}'
+```
+
+```json
+{"success": true, "username": "weller"}
+```
+
+#### 创建会话
+
+```bash
+curl -X POST http://localhost:8600/api/session/create \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "weller", "title": "新对话"}'
+```
+
+```json
+{"session_id": "a1b2c3d4e5f6g7h8"}
+```
+
+#### 同步对话
+
+```bash
+curl -X POST http://localhost:8600/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"session_id": "a1b2c3d4e5f6g7h8", "message": "推荐一部治愈系番剧"}'
+```
+
+```json
+{
+  "reply": "哼，主人想看治愈番吗...",
+  "rag_chunks": [],
+  "rag_confident": false
+}
+```
+
+#### 流式对话（SSE）
+
+```bash
+curl -X POST http://localhost:8600/api/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{"session_id": "a1b2c3d4e5f6g7h8", "message": "鬼灭之刃讲了什么"}'
+```
+
+响应格式（`text/event-stream`）：
+
+```
+data: 鬼灭
+data: 之刃
+data: 讲述了炭治郎...
+data: [DONE]
+```
+
+### Java 调用示例（Spring WebClient）
+
+```java
+// 同步对话
+WebClient client = WebClient.create("http://agent-host:8600");
+
+Map<String, String> body = Map.of("session_id", sessionId, "message", userInput);
+Map response = client.post()
+    .uri("/api/chat")
+    .bodyValue(body)
+    .retrieve()
+    .bodyToMono(Map.class)
+    .block();
+String reply = (String) response.get("reply");
+
+// 流式对话（SSE）
+Flux<String> stream = client.post()
+    .uri("/api/chat/stream")
+    .bodyValue(body)
+    .retrieve()
+    .bodyToFlux(String.class);
+stream.subscribe(chunk -> {
+    if (!"[DONE]".equals(chunk)) {
+        System.out.print(chunk);
+    }
+});
+```
+
 ## ⚙️ RAG 检索流程
 
 ```
